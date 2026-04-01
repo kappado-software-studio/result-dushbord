@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2025 上半期 営業マンデータ ダッシュボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-base:    #0f1117;
+    --bg-card:    #1a1d27;
+    --bg-card2:   #20243a;
+    --bg-hover:   #252940;
+    --border:     #2e3354;
+    --accent1:    #6c63ff;
+    --accent2:    #00d4aa;
+    --accent3:    #ff6b6b;
+    --accent4:    #ffd166;
+    --text-main:  #e8eaf6;
+    --text-sub:   #8b8fa8;
+    --text-dim:   #555a78;
+    --gradient1:  linear-gradient(135deg,#6c63ff22,#00d4aa22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-base);color:var(--text-main);min-height:100vh;overflow-x:hidden;}
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#0f1117;}
+  ::-webkit-scrollbar-thumb{background:#2e3354;border-radius:3px;}
+
+  /* ── Header ── */
+  .header{
+    background:linear-gradient(135deg,#13152080 0%,#1a1d2780 100%);
+    border-bottom:1px solid var(--border);
+    padding:20px 32px;
+    display:flex;align-items:center;justify-content:space-between;
+    backdrop-filter:blur(10px);
+    position:sticky;top:0;z-index:100;
+  }
+  .header-left{display:flex;align-items:center;gap:14px;}
+  .logo-icon{width:40px;height:40px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    box-shadow:0 4px 16px #6c63ff44;}
+  .header-title{font-size:1.15rem;font-weight:700;letter-spacing:.03em;}
+  .header-sub{font-size:.75rem;color:var(--text-sub);margin-top:2px;}
+  .header-badge{background:var(--bg-card2);border:1px solid var(--border);
+    border-radius:20px;padding:5px 14px;font-size:.75rem;color:var(--text-sub);}
+
+  /* ── Layout ── */
+  .main{padding:24px 32px;max-width:1600px;margin:0 auto;}
+
+  /* ── KPI Grid ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  .kpi-card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+    padding:20px 22px;position:relative;overflow:hidden;
+    transition:transform .2s,box-shadow .2s;cursor:default;
+  }
+  .kpi-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px #0008;}
+  .kpi-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;
+    border-radius:50%;opacity:.15;transform:translate(25px,-25px);}
+  .kpi-card.c1::before{background:var(--accent1);}
+  .kpi-card.c2::before{background:var(--accent2);}
+  .kpi-card.c3::before{background:var(--accent4);}
+  .kpi-card.c4::before{background:var(--accent3);}
+  .kpi-icon{font-size:1.4rem;margin-bottom:10px;}
+  .kpi-label{font-size:.72rem;color:var(--text-sub);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+  .kpi-value{font-size:1.75rem;font-weight:700;letter-spacing:-.02em;transition:all .4s;}
+  .kpi-sub{font-size:.72rem;color:var(--text-sub);margin-top:4px;}
+  .kpi-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:600;margin-top:6px;}
+  .badge-up{background:#00d4aa22;color:var(--accent2);}
+  .badge-down{background:#ff6b6b22;color:var(--accent3);}
+
+  /* ── Filters ── */
+  .filter-bar{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:14px;
+    padding:14px 20px;margin-bottom:24px;
+    display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  }
+  .filter-label{font-size:.75rem;color:var(--text-sub);font-weight:500;white-space:nowrap;}
+  .filter-group{display:flex;align-items:center;gap:8px;}
+  select{
+    background:var(--bg-card2);border:1px solid var(--border);color:var(--text-main);
+    border-radius:8px;padding:7px 12px;font-size:.82rem;font-family:'Noto Sans JP',sans-serif;
+    cursor:pointer;outline:none;transition:border-color .2s;min-width:140px;
+  }
+  select:hover,select:focus{border-color:var(--accent1);}
+  .filter-pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .pill{
+    padding:5px 14px;border-radius:20px;font-size:.78rem;cursor:pointer;
+    border:1px solid var(--border);background:var(--bg-card2);color:var(--text-sub);
+    transition:all .18s;user-select:none;
+  }
+  .pill:hover{border-color:var(--accent1);color:var(--accent1);}
+  .pill.active{background:var(--accent1);border-color:var(--accent1);color:#fff;font-weight:600;}
+  .filter-divider{width:1px;height:28px;background:var(--border);}
+  .reset-btn{
+    margin-left:auto;background:transparent;border:1px solid var(--border);
+    color:var(--text-sub);border-radius:8px;padding:6px 14px;font-size:.78rem;
+    cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .2s;
+  }
+  .reset-btn:hover{border-color:var(--accent3);color:var(--accent3);}
+
+  /* ── Charts Grid ── */
+  .charts-row{display:grid;gap:18px;margin-bottom:18px;}
+  .charts-row.top{grid-template-columns:1fr 380px;}
+  .charts-row.bot{grid-template-columns:1fr 1fr;}
+  .chart-card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+    padding:22px 24px;
+  }
+  .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .chart-title{font-size:.9rem;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .chart-title .dot{width:8px;height:8px;border-radius:50%;}
+  .chart-wrap{position:relative;}
+  .chart-wrap canvas{width:100%!important;}
+
+  /* ── Legend ── */
+  .legend-custom{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--text-sub);}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .legend-line{width:16px;height:3px;border-radius:2px;flex-shrink:0;}
+
+  /* ── Table ── */
+  .table-card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:16px;
+    padding:22px 24px;margin-bottom:24px;
+  }
+  .table-controls{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .search-wrap{position:relative;flex:1;min-width:200px;}
+  .search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    color:var(--text-dim);font-size:.85rem;pointer-events:none;}
+  .search-input{
+    width:100%;background:var(--bg-card2);border:1px solid var(--border);
+    color:var(--text-main);border-radius:8px;padding:8px 12px 8px 32px;
+    font-size:.82rem;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color .2s;
+  }
+  .search-input:focus{border-color:var(--accent1);}
+  .table-count{font-size:.75rem;color:var(--text-sub);}
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  thead th{
+    padding:10px 14px;text-align:left;font-size:.72rem;font-weight:600;
+    color:var(--text-sub);letter-spacing:.05em;text-transform:uppercase;
+    border-bottom:1px solid var(--border);cursor:pointer;user-select:none;
+    white-space:nowrap;transition:color .2s;
+  }
+  thead th:hover{color:var(--accent1);}
+  thead th .sort-icon{margin-left:4px;opacity:.4;font-size:.65rem;}
+  thead th.sorted .sort-icon{opacity:1;color:var(--accent1);}
+  tbody tr{border-bottom:1px solid #1e2235;transition:background .15s;}
+  tbody tr:hover{background:var(--bg-hover);}
+  tbody td{padding:10px 14px;white-space:nowrap;}
+  .td-date{color:var(--text-sub);font-size:.78rem;}
+  .td-rep{font-weight:500;}
+  .td-sales{font-weight:600;color:var(--accent2);}
+  .td-rate{font-weight:600;}
+  .rate-bar-wrap{display:flex;align-items:center;gap:8px;}
+  .rate-bar{height:5px;border-radius:3px;flex-shrink:0;}
+  .badge-rep{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:600;}
+  .tbl-pager{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .page-btn{
+    background:var(--bg-card2);border:1px solid var(--border);color:var(--text-sub);
+    border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer;
+    font-family:'Noto Sans JP',sans-serif;transition:all .18s;
+  }
+  .page-btn:hover,.page-btn.active{border-color:var(--accent1);color:var(--accent1);}
+  .page-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* ── Donut legend ── */
+  .donut-legend{display:flex;flex-direction:column;gap:7px;margin-top:14px;max-height:250px;overflow-y:auto;}
+  .donut-legend-item{display:flex;align-items:center;gap:8px;font-size:.78rem;
+    padding:5px 8px;border-radius:6px;transition:background .15s;cursor:default;}
+  .donut-legend-item:hover{background:var(--bg-hover);}
+  .donut-legend-color{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+  .donut-legend-name{flex:1;color:var(--text-main);}
+  .donut-legend-pct{color:var(--text-sub);font-weight:600;}
+  .donut-legend-val{color:var(--accent2);font-weight:600;font-size:.75rem;}
+
+  /* ── Responsive ── */
+  @media(max-width:1100px){
+    .charts-row.top,.charts-row.bot{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media(max-width:640px){
+    .main{padding:16px;}
+    .header{padding:14px 16px;}
+    .kpi-grid{grid-template-columns:1fr 1fr;}
+    .kpi-value{font-size:1.35rem;}
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes countUp{from{opacity:0;}to{opacity:1;}}
+  .kpi-card{animation:fadeIn .4s ease both;}
+  .kpi-card:nth-child(1){animation-delay:.05s;}
+  .kpi-card:nth-child(2){animation-delay:.1s;}
+  .kpi-card:nth-child(3){animation-delay:.15s;}
+  .kpi-card:nth-child(4){animation-delay:.2s;}
+  .chart-card{animation:fadeIn .5s ease both;animation-delay:.25s;}
+  .table-card{animation:fadeIn .5s ease both;animation-delay:.35s;}
+
+  /* ── Tooltip override ── */
+  .chartjs-tooltip{
+    background:rgba(26,29,39,.95)!important;
+    border:1px solid var(--border)!important;
+    border-radius:10px!important;padding:10px 14px!important;
+    color:var(--text-main)!important;font-family:'Noto Sans JP',sans-serif!important;
+    font-size:12px!important;box-shadow:0 8px 24px #0008!important;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-icon">📊</div>
+    <div>
+      <div class="header-title">2025 上半期 ─ 営業マンデータ</div>
+      <div class="header-sub">Sales Performance Dashboard &nbsp;|&nbsp; 2025年2月〜3月</div>
+    </div>
+  </div>
+  <div class="header-badge" id="lastUpdated">データ期間: 2025/02/01 〜 2025/03/31</div>
+</header>
+
+<div class="main">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card c1">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">売上合計</div>
+      <div class="kpi-value" id="kpi-sales">—</div>
+      <div class="kpi-sub">フィルター適用後</div>
+    </div>
+    <div class="kpi-card c2">
+      <div class="kpi-icon">🤝</div>
+      <div class="kpi-label">商談数</div>
+      <div class="kpi-value" id="kpi-deals">—</div>
+      <div class="kpi-sub">総商談件数</div>
+    </div>
+    <div class="kpi-card c3">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">成約数</div>
+      <div class="kpi-value" id="kpi-closed">—</div>
+      <div class="kpi-sub">成約件数</div>
+    </div>
+    <div class="kpi-card c4">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-label">成約率</div>
+      <div class="kpi-value" id="kpi-rate">—</div>
+      <div class="kpi-sub">成約数 ÷ 商談数</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">📅 期間</span>
+      <div class="filter-pills" id="monthPills">
+        <div class="pill active" data-month="all">全期間</div>
+        <div class="pill" data-month="2">2月</div>
+        <div class="pill" data-month="3">3月</div>
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-group">
+      <span class="filter-label">👤 メンバー</span>
+      <select id="repSelect">
+        <option value="all">全員</option>
+        <option value="A">営業A</option>
+        <option value="B">営業B</option>
+        <option value="C">営業C</option>
+        <option value="D">営業D</option>
+        <option value="E">営業E</option>
+        <option value="F">営業F</option>
+        <option value="G">営業G</option>
+        <option value="H">営業H</option>
+        <option value="I">営業I</option>
+        <option value="J">営業J</option>
+      </select>
+    </div>
+    <button class="reset-btn" id="resetBtn">↺ リセット</button>
+  </div>
+
+  <!-- Charts Row 1: Monthly Trend + Donut -->
+  <div class="charts-row top">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <div class="dot" style="background:var(--accent1)"></div>
+          グラフ① 月別・日別 売上推移（棒グラフ＋累計折れ線）
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chart1"></canvas>
+      </div>
+      <div class="legend-custom">
+        <div class="legend-item"><div class="legend-line" style="background:var(--accent1);opacity:.6"></div>日別売上</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--accent2)"></div>累計売上</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <div class="dot" style="background:var(--accent2)"></div>
+          グラフ② 売上構成（メンバー別割合）
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="chart2"></canvas>
+      </div>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2: Bar sales + Bar rate -->
+  <div class="charts-row bot">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <div class="dot" style="background:var(--accent4)"></div>
+          グラフ③ メンバー別 売上合計
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="chart3"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">
+          <div class="dot" style="background:var(--accent3)"></div>
+          グラフ④ メンバー別 成約率
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="chart4"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-controls">
+      <div class="chart-title" style="margin-bottom:0">
+        <div class="dot" style="background:var(--text-sub)"></div>
+        取引一覧テーブル
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="searchInput" placeholder="日付・メンバーで検索…" type="text">
+      </div>
+      <span class="table-count" id="tableCount"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th data-col="date">日付 <span class="sort-icon">▼</span></th>
+            <th data-col="rep">メンバー <span class="sort-icon">▼</span></th>
+            <th data-col="deals">商談数 <span class="sort-icon">▼</span></th>
+            <th data-col="closed">成約数 <span class="sort-icon">▼</span></th>
+            <th data-col="rate">成約率 <span class="sort-icon">▼</span></th>
+            <th data-col="sales">総売上 <span class="sort-icon">▼</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="tbl-pager" id="pager"></div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// 1. RAW DATA
+// ════════════════════════════════════════════
+const RAW_DATA = [{"date": "2025-02-01", "month": 2, "A_deals": 6, "A_closed": 2, "A_sales": 1023864.0, "B_deals": 4, "B_closed": 1, "B_sales": 262722.0, "C_deals": 6, "C_closed": 0, "C_sales": 0.0, "D_deals": 5, "D_closed": 3, "D_sales": 1069026.0, "E_deals": 5, "E_closed": 2, "E_sales": 749111.0, "F_deals": 3, "F_closed": 0, "F_sales": 0.0, "G_deals": 2, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-04", "month": 2, "A_deals": 6, "A_closed": 4, "A_sales": 1806868.0, "B_deals": 9, "B_closed": 1, "B_sales": 341227.0, "C_deals": 7, "C_closed": 2, "C_sales": 626709.0, "D_deals": 5, "D_closed": 2, "D_sales": 695176.0, "E_deals": 2, "E_closed": 0, "E_sales": 0.0, "F_deals": 4, "F_closed": 1, "F_sales": 133546.0, "G_deals": 6, "G_closed": 0, "G_sales": 0.0, "H_deals": 2, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-05", "month": 2, "A_deals": 6, "A_closed": 1, "A_sales": 439077.0, "B_deals": 4, "B_closed": 1, "B_sales": 262791.0, "C_deals": 3, "C_closed": 1, "C_sales": 269504.0, "D_deals": 4, "D_closed": 1, "D_sales": 474953.0, "E_deals": 4, "E_closed": 1, "E_sales": 397472.0, "F_deals": 7, "F_closed": 1, "F_sales": 136382.0, "G_deals": 5, "G_closed": 1, "G_sales": 141616.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-02-06", "month": 2, "A_deals": 1, "A_closed": 0, "A_sales": 0.0, "B_deals": 4, "B_closed": 1, "B_sales": 281080.0, "C_deals": 7, "C_closed": 1, "C_sales": 286636.0, "D_deals": 5, "D_closed": 2, "D_sales": 810560.0, "E_deals": 0, "E_closed": 0, "E_sales": 0.0, "F_deals": 2, "F_closed": 0, "F_sales": 0.0, "G_deals": 7, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 1, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-07", "month": 2, "A_deals": 4, "A_closed": 2, "A_sales": 994936.0, "B_deals": 4, "B_closed": 2, "B_sales": 627203.0, "C_deals": 2, "C_closed": 0, "C_sales": 0.0, "D_deals": 8, "D_closed": 4, "D_sales": 1399730.0, "E_deals": 6, "E_closed": 1, "E_sales": 379152.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 1, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-08", "month": 2, "A_deals": 7, "A_closed": 2, "A_sales": 772632.0, "B_deals": 4, "B_closed": 3, "B_sales": 892069.0, "C_deals": 1, "C_closed": 1, "C_sales": 354376.0, "D_deals": 8, "D_closed": 6, "D_sales": 2373895.0, "E_deals": 7, "E_closed": 2, "E_sales": 662904.0, "F_deals": 6, "F_closed": 2, "F_sales": 239288.0, "G_deals": 3, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 1, "H_sales": 224761.0, "I_deals": 6, "I_closed": 1, "I_sales": 158789.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-11", "month": 2, "A_deals": 6, "A_closed": 3, "A_sales": 1521222.0, "B_deals": 6, "B_closed": 3, "B_sales": 966976.0, "C_deals": 6, "C_closed": 2, "C_sales": 623443.0, "D_deals": 9, "D_closed": 4, "D_sales": 1552326.0, "E_deals": 2, "E_closed": 1, "E_sales": 393623.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 0, "G_closed": 0, "G_sales": 0.0, "H_deals": 0, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 3, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-12", "month": 2, "A_deals": 3, "A_closed": 1, "A_sales": 397356.0, "B_deals": 6, "B_closed": 2, "B_sales": 520040.0, "C_deals": 8, "C_closed": 3, "C_sales": 873676.0, "D_deals": 3, "D_closed": 2, "D_sales": 768210.0, "E_deals": 6, "E_closed": 1, "E_sales": 372614.0, "F_deals": 5, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 6, "H_closed": 0, "H_sales": 0.0, "I_deals": 6, "I_closed": 1, "I_sales": 172605.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-13", "month": 2, "A_deals": 3, "A_closed": 2, "A_sales": 895101.0, "B_deals": 0, "B_closed": 0, "B_sales": 0.0, "C_deals": 3, "C_closed": 1, "C_sales": 251594.0, "D_deals": 0, "D_closed": 0, "D_sales": 0.0, "E_deals": 5, "E_closed": 1, "E_sales": 387480.0, "F_deals": 7, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 1, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-14", "month": 2, "A_deals": 4, "A_closed": 0, "A_sales": 0.0, "B_deals": 5, "B_closed": 2, "B_sales": 515080.0, "C_deals": 1, "C_closed": 0, "C_sales": 0.0, "D_deals": 7, "D_closed": 3, "D_sales": 1269556.0, "E_deals": 3, "E_closed": 0, "E_sales": 0.0, "F_deals": 5, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 1, "G_sales": 186342.0, "H_deals": 1, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-02-15", "month": 2, "A_deals": 4, "A_closed": 1, "A_sales": 575035.0, "B_deals": 7, "B_closed": 1, "B_sales": 273502.0, "C_deals": 5, "C_closed": 0, "C_sales": 0.0, "D_deals": 7, "D_closed": 3, "D_sales": 1017003.0, "E_deals": 7, "E_closed": 1, "E_sales": 390338.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 3, "G_closed": 1, "G_sales": 165683.0, "H_deals": 7, "H_closed": 0, "H_sales": 0.0, "I_deals": 6, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-18", "month": 2, "A_deals": 6, "A_closed": 3, "A_sales": 1472586.0, "B_deals": 5, "B_closed": 1, "B_sales": 263112.0, "C_deals": 4, "C_closed": 1, "C_sales": 329740.0, "D_deals": 5, "D_closed": 5, "D_sales": 1495999.0, "E_deals": 8, "E_closed": 2, "E_sales": 664568.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 2, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 1, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-19", "month": 2, "A_deals": 5, "A_closed": 3, "A_sales": 1367104.0, "B_deals": 7, "B_closed": 3, "B_sales": 881789.0, "C_deals": 6, "C_closed": 1, "C_sales": 349861.0, "D_deals": 6, "D_closed": 4, "D_sales": 1304772.0, "E_deals": 5, "E_closed": 1, "E_sales": 284851.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 1, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 1, "H_sales": 198920.0, "I_deals": 6, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-02-20", "month": 2, "A_deals": 4, "A_closed": 3, "A_sales": 1208714.0, "B_deals": 4, "B_closed": 0, "B_sales": 0.0, "C_deals": 2, "C_closed": 1, "C_sales": 298136.0, "D_deals": 4, "D_closed": 1, "D_sales": 357677.0, "E_deals": 5, "E_closed": 2, "E_sales": 727121.0, "F_deals": 6, "F_closed": 1, "F_sales": 108285.0, "G_deals": 5, "G_closed": 1, "G_sales": 162673.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-21", "month": 2, "A_deals": 2, "A_closed": 0, "A_sales": 0.0, "B_deals": 3, "B_closed": 1, "B_sales": 333556.0, "C_deals": 1, "C_closed": 0, "C_sales": 0.0, "D_deals": 7, "D_closed": 3, "D_sales": 1099004.0, "E_deals": 6, "E_closed": 2, "E_sales": 781232.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 3, "G_closed": 0, "G_sales": 0.0, "H_deals": 7, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-22", "month": 2, "A_deals": 6, "A_closed": 3, "A_sales": 1287753.0, "B_deals": 7, "B_closed": 2, "B_sales": 545323.0, "C_deals": 11, "C_closed": 5, "C_sales": 1536130.0, "D_deals": 4, "D_closed": 1, "D_sales": 259030.0, "E_deals": 0, "E_closed": 0, "E_sales": 0.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 1, "G_closed": 1, "G_sales": 172242.0, "H_deals": 1, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-25", "month": 2, "A_deals": 7, "A_closed": 0, "A_sales": 0.0, "B_deals": 9, "B_closed": 5, "B_sales": 1424916.0, "C_deals": 8, "C_closed": 4, "C_sales": 1446671.0, "D_deals": 6, "D_closed": 0, "D_sales": 0.0, "E_deals": 8, "E_closed": 3, "E_sales": 1060327.0, "F_deals": 3, "F_closed": 0, "F_sales": 0.0, "G_deals": 3, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 3, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-26", "month": 2, "A_deals": 6, "A_closed": 1, "A_sales": 448298.0, "B_deals": 4, "B_closed": 0, "B_sales": 0.0, "C_deals": 5, "C_closed": 3, "C_sales": 973157.0, "D_deals": 8, "D_closed": 4, "D_sales": 1569158.0, "E_deals": 5, "E_closed": 3, "E_sales": 1125984.0, "F_deals": 0, "F_closed": 0, "F_sales": 0.0, "G_deals": 1, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-27", "month": 2, "A_deals": 6, "A_closed": 4, "A_sales": 1858609.0, "B_deals": 7, "B_closed": 2, "B_sales": 723857.0, "C_deals": 4, "C_closed": 1, "C_sales": 340553.0, "D_deals": 6, "D_closed": 4, "D_sales": 1058101.0, "E_deals": 7, "E_closed": 2, "E_sales": 733262.0, "F_deals": 3, "F_closed": 0, "F_sales": 0.0, "G_deals": 8, "G_closed": 1, "G_sales": 167295.0, "H_deals": 6, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 1, "I_sales": 198665.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-02-28", "month": 2, "A_deals": 3, "A_closed": 2, "A_sales": 820845.0, "B_deals": 6, "B_closed": 4, "B_sales": 1141124.0, "C_deals": 0, "C_closed": 0, "C_sales": 0.0, "D_deals": 7, "D_closed": 2, "D_sales": 663561.0, "E_deals": 1, "E_closed": 1, "E_sales": 372227.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 5, "G_closed": 0, "G_sales": 0.0, "H_deals": 2, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-03-01", "month": 3, "A_deals": 8, "A_closed": 3, "A_sales": 1240676.0, "B_deals": 5, "B_closed": 1, "B_sales": 282782.0, "C_deals": 6, "C_closed": 2, "C_sales": 699923.0, "D_deals": 7, "D_closed": 1, "D_sales": 325779.0, "E_deals": 6, "E_closed": 3, "E_sales": 1124763.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 5, "G_closed": 0, "G_sales": 0.0, "H_deals": 2, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-04", "month": 3, "A_deals": 7, "A_closed": 5, "A_sales": 2029366.0, "B_deals": 5, "B_closed": 3, "B_sales": 1032065.0, "C_deals": 5, "C_closed": 1, "C_sales": 335968.0, "D_deals": 6, "D_closed": 2, "D_sales": 864422.0, "E_deals": 7, "E_closed": 2, "E_sales": 772740.0, "F_deals": 4, "F_closed": 1, "F_sales": 127607.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-05", "month": 3, "A_deals": 5, "A_closed": 3, "A_sales": 1573109.0, "B_deals": 7, "B_closed": 2, "B_sales": 448727.0, "C_deals": 0, "C_closed": 0, "C_sales": 0.0, "D_deals": 6, "D_closed": 3, "D_sales": 1064943.0, "E_deals": 5, "E_closed": 1, "E_sales": 384567.0, "F_deals": 3, "F_closed": 1, "F_sales": 122511.0, "G_deals": 5, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 6, "I_closed": 1, "I_sales": 172902.0, "J_deals": 5, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-03-06", "month": 3, "A_deals": 2, "A_closed": 2, "A_sales": 918984.0, "B_deals": 5, "B_closed": 1, "B_sales": 361665.0, "C_deals": 9, "C_closed": 2, "C_sales": 700617.0, "D_deals": 5, "D_closed": 2, "D_sales": 806085.0, "E_deals": 5, "E_closed": 3, "E_sales": 987730.0, "F_deals": 7, "F_closed": 1, "F_sales": 121184.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-07", "month": 3, "A_deals": 6, "A_closed": 2, "A_sales": 1127408.0, "B_deals": 8, "B_closed": 3, "B_sales": 947897.0, "C_deals": 6, "C_closed": 2, "C_sales": 614226.0, "D_deals": 4, "D_closed": 2, "D_sales": 806968.0, "E_deals": 7, "E_closed": 3, "E_sales": 1279396.0, "F_deals": 3, "F_closed": 0, "F_sales": 0.0, "G_deals": 3, "G_closed": 1, "G_sales": 173611.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-08", "month": 3, "A_deals": 6, "A_closed": 2, "A_sales": 1018075.0, "B_deals": 6, "B_closed": 3, "B_sales": 926013.0, "C_deals": 1, "C_closed": 0, "C_sales": 0.0, "D_deals": 6, "D_closed": 4, "D_sales": 1334410.0, "E_deals": 2, "E_closed": 1, "E_sales": 389939.0, "F_deals": 9, "F_closed": 1, "F_sales": 120069.0, "G_deals": 10, "G_closed": 2, "G_sales": 364792.0, "H_deals": 1, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-11", "month": 3, "A_deals": 8, "A_closed": 3, "A_sales": 1375776.0, "B_deals": 7, "B_closed": 7, "B_sales": 1996404.0, "C_deals": 2, "C_closed": 0, "C_sales": 0.0, "D_deals": 0, "D_closed": 0, "D_sales": 0.0, "E_deals": 5, "E_closed": 0, "E_sales": 0.0, "F_deals": 0, "F_closed": 0, "F_sales": 0.0, "G_deals": 2, "G_closed": 1, "G_sales": 150636.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 3, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-12", "month": 3, "A_deals": 6, "A_closed": 3, "A_sales": 1226512.0, "B_deals": 7, "B_closed": 3, "B_sales": 820184.0, "C_deals": 9, "C_closed": 5, "C_sales": 1465628.0, "D_deals": 3, "D_closed": 1, "D_sales": 456622.0, "E_deals": 4, "E_closed": 1, "E_sales": 392878.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 7, "G_closed": 1, "G_sales": 187707.0, "H_deals": 7, "H_closed": 1, "H_sales": 203498.0, "I_deals": 6, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-13", "month": 3, "A_deals": 7, "A_closed": 3, "A_sales": 1130114.0, "B_deals": 2, "B_closed": 2, "B_sales": 615995.0, "C_deals": 4, "C_closed": 1, "C_sales": 325778.0, "D_deals": 6, "D_closed": 4, "D_sales": 1312384.0, "E_deals": 6, "E_closed": 2, "E_sales": 577141.0, "F_deals": 6, "F_closed": 0, "F_sales": 0.0, "G_deals": 5, "G_closed": 1, "G_sales": 165400.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 1, "I_sales": 179654.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-14", "month": 3, "A_deals": 4, "A_closed": 2, "A_sales": 1040368.0, "B_deals": 6, "B_closed": 1, "B_sales": 271718.0, "C_deals": 6, "C_closed": 1, "C_sales": 266046.0, "D_deals": 7, "D_closed": 3, "D_sales": 1192741.0, "E_deals": 6, "E_closed": 2, "E_sales": 636407.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 2, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-03-15", "month": 3, "A_deals": 8, "A_closed": 3, "A_sales": 1155218.0, "B_deals": 2, "B_closed": 1, "B_sales": 263858.0, "C_deals": 8, "C_closed": 4, "C_sales": 1191503.0, "D_deals": 7, "D_closed": 4, "D_sales": 1230622.0, "E_deals": 5, "E_closed": 2, "E_sales": 806871.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 2, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-18", "month": 3, "A_deals": 5, "A_closed": 2, "A_sales": 970882.0, "B_deals": 2, "B_closed": 0, "B_sales": 0.0, "C_deals": 3, "C_closed": 0, "C_sales": 0.0, "D_deals": 6, "D_closed": 4, "D_sales": 1098741.0, "E_deals": 6, "E_closed": 2, "E_sales": 819753.0, "F_deals": 3, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 5, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-19", "month": 3, "A_deals": 4, "A_closed": 0, "A_sales": 0.0, "B_deals": 7, "B_closed": 3, "B_sales": 950096.0, "C_deals": 10, "C_closed": 6, "C_sales": 1864125.0, "D_deals": 7, "D_closed": 3, "D_sales": 1209566.0, "E_deals": 3, "E_closed": 1, "E_sales": 337902.0, "F_deals": 2, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 2, "G_sales": 387572.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 2, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-03-20", "month": 3, "A_deals": 5, "A_closed": 1, "A_sales": 469421.0, "B_deals": 7, "B_closed": 3, "B_sales": 892091.0, "C_deals": 6, "C_closed": 3, "C_sales": 790462.0, "D_deals": 6, "D_closed": 2, "D_sales": 817447.0, "E_deals": 4, "E_closed": 2, "E_sales": 644229.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 0, "G_sales": 0.0, "H_deals": 7, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-21", "month": 3, "A_deals": 6, "A_closed": 4, "A_sales": 1847612.0, "B_deals": 4, "B_closed": 2, "B_sales": 522119.0, "C_deals": 6, "C_closed": 1, "C_sales": 314038.0, "D_deals": 6, "D_closed": 3, "D_sales": 1319911.0, "E_deals": 6, "E_closed": 3, "E_sales": 1262377.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 5, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 6, "I_closed": 1, "I_sales": 155554.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-22", "month": 3, "A_deals": 6, "A_closed": 3, "A_sales": 1452467.0, "B_deals": 3, "B_closed": 1, "B_sales": 301779.0, "C_deals": 8, "C_closed": 1, "C_sales": 297706.0, "D_deals": 0, "D_closed": 0, "D_sales": 0.0, "E_deals": 5, "E_closed": 3, "E_sales": 1041839.0, "F_deals": 7, "F_closed": 0, "F_sales": 0.0, "G_deals": 7, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 4, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-25", "month": 3, "A_deals": 7, "A_closed": 2, "A_sales": 862055.0, "B_deals": 6, "B_closed": 4, "B_sales": 1135375.0, "C_deals": 2, "C_closed": 1, "C_sales": 296900.0, "D_deals": 9, "D_closed": 7, "D_sales": 2484506.0, "E_deals": 5, "E_closed": 2, "E_sales": 866557.0, "F_deals": 1, "F_closed": 0, "F_sales": 0.0, "G_deals": 1, "G_closed": 0, "G_sales": 0.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 3, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-26", "month": 3, "A_deals": 1, "A_closed": 1, "A_sales": 494257.0, "B_deals": 8, "B_closed": 2, "B_sales": 619939.0, "C_deals": 4, "C_closed": 2, "C_sales": 626955.0, "D_deals": 6, "D_closed": 1, "D_sales": 407159.0, "E_deals": 4, "E_closed": 1, "E_sales": 394646.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 3, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 5, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-27", "month": 3, "A_deals": 3, "A_closed": 1, "A_sales": 496276.0, "B_deals": 7, "B_closed": 2, "B_sales": 553998.0, "C_deals": 10, "C_closed": 3, "C_sales": 1067922.0, "D_deals": 5, "D_closed": 3, "D_sales": 976149.0, "E_deals": 6, "E_closed": 2, "E_sales": 695132.0, "F_deals": 9, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 2, "G_sales": 307557.0, "H_deals": 4, "H_closed": 0, "H_sales": 0.0, "I_deals": 5, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 0, "J_sales": 0.0}, {"date": "2025-03-28", "month": 3, "A_deals": 8, "A_closed": 1, "A_sales": 440646.0, "B_deals": 3, "B_closed": 2, "B_sales": 499317.0, "C_deals": 6, "C_closed": 2, "C_sales": 595215.0, "D_deals": 2, "D_closed": 0, "D_sales": 0.0, "E_deals": 7, "E_closed": 3, "E_sales": 1158794.0, "F_deals": 4, "F_closed": 0, "F_sales": 0.0, "G_deals": 1, "G_closed": 0, "G_sales": 0.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 1, "I_closed": 0, "I_sales": 0.0, "J_deals": 6, "J_closed": 1, "J_sales": 115990.0}, {"date": "2025-03-29", "month": 3, "A_deals": 5, "A_closed": 2, "A_sales": 825185.0, "B_deals": 4, "B_closed": 1, "B_sales": 282701.0, "C_deals": 6, "C_closed": 0, "C_sales": 0.0, "D_deals": 6, "D_closed": 1, "D_sales": 385449.0, "E_deals": 5, "E_closed": 2, "E_sales": 846170.0, "F_deals": 0, "F_closed": 0, "F_sales": 0.0, "G_deals": 4, "G_closed": 1, "G_sales": 178775.0, "H_deals": 3, "H_closed": 0, "H_sales": 0.0, "I_deals": 3, "I_closed": 0, "I_sales": 0.0, "J_deals": 4, "J_closed": 0, "J_sales": 0.0}];
+
+const REPS = ['A','B','C','D','E','F','G','H','I','J'];
+const REP_COLORS = {
+  A:'#6c63ff',B:'#00d4aa',C:'#ffd166',D:'#ff6b6b',E:'#4ecdc4',
+  F:'#a78bfa',G:'#f97316',H:'#38bdf8',I:'#fb7185',J:'#86efac'
+};
+
+// ════════════════════════════════════════════
+// 2. STATE
+// ════════════════════════════════════════════
+let state = { month: 'all', rep: 'all' };
+let sortCol = 'date', sortAsc = true;
+let searchQ = '';
+let page = 1;
+const PAGE_SIZE = 15;
+
+// ════════════════════════════════════════════
+// 3. HELPERS
+// ════════════════════════════════════════════
+function yen(v){ return '¥' + Math.round(v).toLocaleString('ja-JP'); }
+function pct(v){ return v.toFixed(1) + '%'; }
+
+function filteredData(){
+  return RAW_DATA.filter(d => {
+    if(state.month !== 'all' && d.month !== parseInt(state.month)) return false;
+    return true;
+  });
+}
+
+function aggregate(data, repFilter){
+  // returns flat rows: {date, rep, deals, closed, rate, sales}
+  const rows = [];
+  for(const d of data){
+    const reps = repFilter === 'all' ? REPS : [repFilter];
+    for(const r of reps){
+      const deals  = d[r+'_deals'];
+      const closed = d[r+'_closed'];
+      const sales  = d[r+'_sales'];
+      if(deals > 0 || sales > 0){
+        rows.push({
+          date: d.date, rep: r,
+          deals, closed,
+          rate: deals > 0 ? (closed/deals*100) : 0,
+          sales
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function kpiTotals(rows){
+  let sales=0, deals=0, closed=0;
+  for(const r of rows){ sales+=r.sales; deals+=r.deals; closed+=r.closed; }
+  return { sales, deals, closed, rate: deals>0 ? closed/deals*100 : 0 };
+}
+
+// ════════════════════════════════════════════
+// 4. KPI
+// ════════════════════════════════════════════
+function animateVal(el, target, fmt){
+  const start = 0, dur = 600;
+  const t0 = performance.now();
+  function step(t){
+    const frac = Math.min((t-t0)/dur, 1);
+    const ease = 1 - Math.pow(1-frac, 3);
+    el.textContent = fmt(start + (target - start) * ease);
+    if(frac < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(target);
+  }
+  requestAnimationFrame(step);
+}
+
+function updateKPI(rows){
+  const {sales, deals, closed, rate} = kpiTotals(rows);
+  animateVal(document.getElementById('kpi-sales'),  sales,  v => yen(v));
+  animateVal(document.getElementById('kpi-deals'),  deals,  v => Math.round(v).toLocaleString());
+  animateVal(document.getElementById('kpi-closed'), closed, v => Math.round(v).toLocaleString());
+  animateVal(document.getElementById('kpi-rate'),   rate,   v => pct(v));
+}
+
+// ════════════════════════════════════════════
+// 5. CHARTS
+// ════════════════════════════════════════════
+Chart.defaults.color = '#8b8fa8';
+Chart.defaults.font.family = "'Noto Sans JP', sans-serif";
+Chart.defaults.font.size = 11;
+
+const charts = {};
+
+function tooltipPlugin(){
+  return {
+    plugins: {
+      tooltip: {
+        backgroundColor: 'rgba(26,29,39,0.96)',
+        borderColor: '#2e3354', borderWidth: 1,
+        titleColor: '#e8eaf6', bodyColor: '#8b8fa8',
+        padding: 12, cornerRadius: 10,
+        titleFont:{weight:'600'},
+      }
+    }
+  };
+}
+
+// Chart 1: Daily sales bar + cumulative line
+function buildChart1(data){
+  const fd = filteredData();
+  const reps = state.rep === 'all' ? REPS : [state.rep];
+
+  // Group by date
+  const byDate = {};
+  for(const d of fd){
+    let s = 0;
+    for(const r of reps) s += d[r+'_sales'];
+    byDate[d.date] = (byDate[d.date]||0) + s;
+  }
+  const dates = Object.keys(byDate).sort();
+  const dailySales = dates.map(dt => byDate[dt]);
+  let cum = 0;
+  const cumSales = dailySales.map(v => (cum += v));
+
+  const labels = dates.map(d => d.slice(5)); // MM-DD
+  const ctx = document.getElementById('chart1').getContext('2d');
+  if(charts.c1) charts.c1.destroy();
+  charts.c1 = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type:'bar', label:'日別売上',
+          data: dailySales,
+          backgroundColor: '#6c63ff55',
+          borderColor: '#6c63ff',
+          borderWidth: 1, borderRadius: 4,
+          yAxisID: 'y',
+        },
+        {
+          type:'line', label:'累計売上',
+          data: cumSales,
+          borderColor: '#00d4aa',
+          backgroundColor: '#00d4aa11',
+          borderWidth: 2.5,
+          pointRadius: 2, pointHoverRadius: 6,
+          tension: 0.35, fill: true,
+          yAxisID: 'y2',
+        }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(26,29,39,.96)',
+          borderColor:'#2e3354',borderWidth:1,
+          titleColor:'#e8eaf6',bodyColor:'#aaa',
+          padding:12,cornerRadius:10,
+          callbacks:{
+            label: ctx => {
+              const label = ctx.dataset.label;
+              const v = ctx.parsed.y;
+              return ` ${label}: ${yen(v)}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'#1e2235'},ticks:{maxRotation:45,font:{size:9}}},
+        y:{
+          grid:{color:'#1e2235'},
+          ticks:{callback: v => '¥'+Math.round(v/1e6)+'M', font:{size:9}},
+          title:{display:true,text:'日別売上',color:'#6c63ff',font:{size:9}}
+        },
+        y2:{
+          position:'right',
+          grid:{drawOnChartArea:false},
+          ticks:{callback: v => '¥'+Math.round(v/1e6)+'M', font:{size:9}},
+          title:{display:true,text:'累計売上',color:'#00d4aa',font:{size:9}}
+        }
+      }
+    }
+  });
+}
+
+// Chart 2: Donut
+function buildChart2(data){
+  const reps = state.rep === 'all' ? REPS : [state.rep];
+  const repSales = {};
+  for(const r of reps){
+    repSales[r] = data.filter(d=>d.rep===r).reduce((s,d)=>s+d.sales,0);
+  }
+  const total = Object.values(repSales).reduce((a,b)=>a+b,0);
+  const sorted = reps.slice().sort((a,b)=>repSales[b]-repSales[a]).filter(r=>repSales[r]>0);
+
+  const ctx = document.getElementById('chart2').getContext('2d');
+  if(charts.c2) charts.c2.destroy();
+  charts.c2 = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels: sorted.map(r=>'営業'+r),
+      datasets:[{
+        data: sorted.map(r=>repSales[r]),
+        backgroundColor: sorted.map(r=>REP_COLORS[r]),
+        borderColor:'#0f1117', borderWidth:3,
+        hoverOffset:8,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'65%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(26,29,39,.96)',
+          borderColor:'#2e3354',borderWidth:1,
+          titleColor:'#e8eaf6',bodyColor:'#aaa',
+          padding:12,cornerRadius:10,
+          callbacks:{
+            label: ctx => {
+              const v = ctx.parsed;
+              const pct2 = total > 0 ? (v/total*100).toFixed(1) : 0;
+              return ` ${yen(v)}  (${pct2}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Custom legend
+  const lg = document.getElementById('donutLegend');
+  lg.innerHTML = '';
+  for(const r of sorted){
+    const p = total > 0 ? (repSales[r]/total*100).toFixed(1) : '0.0';
+    lg.innerHTML += `<div class="donut-legend-item">
+      <div class="donut-legend-color" style="background:${REP_COLORS[r]}"></div>
+      <span class="donut-legend-name">営業${r}</span>
+      <span class="donut-legend-pct">${p}%</span>
+      <span class="donut-legend-val">${yen(repSales[r])}</span>
+    </div>`;
+  }
+}
+
+// Chart 3: Member sales bar
+function buildChart3(data){
+  const reps = state.rep === 'all' ? REPS : [state.rep];
+  const vals = reps.map(r => data.filter(d=>d.rep===r).reduce((s,d)=>s+d.sales,0));
+  const sorted = reps.map((r,i)=>({r,v:vals[i]})).sort((a,b)=>b.v-a.v);
+
+  const ctx = document.getElementById('chart3').getContext('2d');
+  if(charts.c3) charts.c3.destroy();
+  charts.c3 = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>'営業'+x.r),
+      datasets:[{
+        label:'売上合計',
+        data: sorted.map(x=>x.v),
+        backgroundColor: sorted.map(x=>REP_COLORS[x.r]+'aa'),
+        borderColor: sorted.map(x=>REP_COLORS[x.r]),
+        borderWidth:1, borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(26,29,39,.96)',
+          borderColor:'#2e3354',borderWidth:1,
+          titleColor:'#e8eaf6',bodyColor:'#aaa',
+          padding:12,cornerRadius:10,
+          callbacks:{label: ctx => ` 売上: ${yen(ctx.parsed.x)}`}
+        }
+      },
+      scales:{
+        x:{grid:{color:'#1e2235'}, ticks:{callback:v=>'¥'+Math.round(v/1e6)+'M',font:{size:9}}},
+        y:{grid:{display:false}, ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+// Chart 4: Close rate bar
+function buildChart4(data){
+  const reps = state.rep === 'all' ? REPS : [state.rep];
+  const rates = reps.map(r => {
+    const rows = data.filter(d=>d.rep===r);
+    const deals  = rows.reduce((s,d)=>s+d.deals,0);
+    const closed = rows.reduce((s,d)=>s+d.closed,0);
+    return deals > 0 ? closed/deals*100 : 0;
+  });
+  const sorted = reps.map((r,i)=>({r,v:rates[i]})).sort((a,b)=>b.v-a.v);
+
+  const ctx = document.getElementById('chart4').getContext('2d');
+  if(charts.c4) charts.c4.destroy();
+  charts.c4 = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: sorted.map(x=>'営業'+x.r),
+      datasets:[{
+        label:'成約率',
+        data: sorted.map(x=>x.v),
+        backgroundColor: sorted.map(x => {
+          const v = x.v;
+          return v >= 40 ? '#00d4aa88' : v >= 25 ? '#ffd16688' : '#ff6b6b88';
+        }),
+        borderColor: sorted.map(x => {
+          const v = x.v;
+          return v >= 40 ? '#00d4aa' : v >= 25 ? '#ffd166' : '#ff6b6b';
+        }),
+        borderWidth:1, borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(26,29,39,.96)',
+          borderColor:'#2e3354',borderWidth:1,
+          titleColor:'#e8eaf6',bodyColor:'#aaa',
+          padding:12,cornerRadius:10,
+          callbacks:{label: ctx => ` 成約率: ${ctx.parsed.y.toFixed(1)}%`}
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{
+          grid:{color:'#1e2235'},
+          ticks:{callback:v=>v+'%',font:{size:9}},
+          max:60,
+        }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════
+// 6. TABLE
+// ════════════════════════════════════════════
+function buildTable(data){
+  let rows = data.filter(r => {
+    if(!searchQ) return true;
+    const q = searchQ.toLowerCase();
+    return r.date.includes(q) || ('営業'+r.rep).includes(q);
+  });
+
+  // Sort
+  rows.sort((a,b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if(typeof va === 'string') va = va.toLowerCase(), vb = vb.toLowerCase();
+    if(va < vb) return sortAsc ? -1 : 1;
+    if(va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  const total = rows.length;
+  const pageRows = rows.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+  document.getElementById('tableCount').textContent = `${total} 件`;
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  for(const r of pageRows){
+    const rateColor = r.rate >= 40 ? '#00d4aa' : r.rate >= 20 ? '#ffd166' : '#ff6b6b';
+    const barW = Math.min(r.rate * 1.5, 60);
+    tbody.innerHTML += `<tr>
+      <td class="td-date">${r.date}</td>
+      <td><span class="badge-rep" style="background:${REP_COLORS[r.rep]}22;color:${REP_COLORS[r.rep]}">営業${r.rep}</span></td>
+      <td style="text-align:right">${r.deals}</td>
+      <td style="text-align:right">${r.closed}</td>
+      <td>
+        <div class="rate-bar-wrap">
+          <div class="rate-bar" style="width:${barW}px;background:${rateColor}44;border:1px solid ${rateColor}66"></div>
+          <span style="color:${rateColor};font-weight:600">${pct(r.rate)}</span>
+        </div>
+      </td>
+      <td class="td-sales" style="text-align:right">${yen(r.sales)}</td>
+    </tr>`;
+  }
+
+  // Pager
+  const pages = Math.ceil(total/PAGE_SIZE);
+  const pager = document.getElementById('pager');
+  pager.innerHTML = '';
+  if(pages > 1){
+    const btn = (label, pg, active=false, disabled=false) => {
+      const b = document.createElement('button');
+      b.className = 'page-btn' + (active?' active':'');
+      b.textContent = label;
+      b.disabled = disabled;
+      b.onclick = () => { page = pg; buildTable(data); };
+      return b;
+    };
+    pager.appendChild(btn('‹', page-1, false, page<=1));
+    const start = Math.max(1, page-2), end = Math.min(pages, page+2);
+    for(let p2=start; p2<=end; p2++) pager.appendChild(btn(p2, p2, p2===page));
+    pager.appendChild(btn('›', page+1, false, page>=pages));
+  }
+
+  // Sort headers
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sortCol);
+    const icon = th.querySelector('.sort-icon');
+    if(icon && th.dataset.col === sortCol) icon.textContent = sortAsc ? '▲' : '▼';
+    else if(icon) icon.textContent = '▼';
+  });
+}
+
+// ════════════════════════════════════════════
+// 7. MAIN UPDATE
+// ════════════════════════════════════════════
+function update(){
+  const fd = filteredData();
+  const rows = aggregate(fd, state.rep);
+  updateKPI(rows);
+  buildChart1(rows);
+  buildChart2(rows);
+  buildChart3(rows);
+  buildChart4(rows);
+  page = 1;
+  buildTable(rows);
+}
+
+// ════════════════════════════════════════════
+// 8. EVENT LISTENERS
+// ════════════════════════════════════════════
+// Month pills
+document.querySelectorAll('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    state.month = pill.dataset.month;
+    update();
+  });
+});
+
+// Rep select
+document.getElementById('repSelect').addEventListener('change', e => {
+  state.rep = e.target.value;
+  update();
+});
+
+// Reset
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state = {month:'all', rep:'all'};
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-month="all"]').classList.add('active');
+  document.getElementById('repSelect').value = 'all';
+  searchQ = '';
+  document.getElementById('searchInput').value = '';
+  sortCol = 'date'; sortAsc = true;
+  update();
+});
+
+// Search
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQ = e.target.value;
+  page = 1;
+  const fd = filteredData();
+  const rows = aggregate(fd, state.rep);
+  buildTable(rows);
+});
+
+// Sort
+document.querySelectorAll('thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if(sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    const fd = filteredData();
+    const rows = aggregate(fd, state.rep);
+    buildTable(rows);
+  });
+});
+
+// ════════════════════════════════════════════
+// 9. INIT
+// ════════════════════════════════════════════
+update();
+</script>
+</body>
+</html>
